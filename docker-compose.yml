@@ -1,0 +1,56 @@
+secrets:
+  google_service_account_key:
+    file: ./secrets/google_service_account_key
+
+services:
+  pubsub-ui:
+    image: ghcr.io/neoscript/pubsub-emulator-ui:latest
+    ports:
+      - 3001:80
+  
+  # pubsub-emulator:
+  #   image: dipjyotimetia/pubsub-emulator:latest
+  #   ports:
+  #     - 3002:${PUBSUB_PORT}
+  #   environment:
+  #     - PUBSUB_PROJECT=${GOOGLE_CLOUD_PROJECT}
+  #     - PUBSUB_TOPIC=${PUBSUB_TOPIC}
+  #     - PUBSUB_SUBSCRIPTION=${PUBSUB_SUBSCRIPTION}
+  #     - PUBSUB_PORT=${PUBSUB_PORT}
+
+  api:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    command: gow run main.go
+    env_file:
+      - ./.env
+    secrets:
+      - google_service_account_key
+    environment:
+      - FIRESTORE_EMULATOR_HOST=firebase-emulators:8080
+      - PUBSUB_EMULATOR_HOST=firebase-emulators:8085
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+      - PUBSUB_TOPIC=${PUBSUB_TOPIC}
+      - PUBSUB_SUBSCRIPTION=${PUBSUB_SUBSCRIPTION}
+    ports:
+      - "3000:3000"
+    develop:
+      watch:
+        - action: sync
+          path: ./
+          target: /usr/src/app
+
+  firebase-emulators:
+    image: spine3/firebase-emulator
+    environment:
+      - GCP_PROJECT=scavenger-local
+      - UI_ENABLED=true
+    ports:
+      - 9000:9000
+      - 8080:8080
+      - 4000:4000
+      - 9099:9099
+      - 8085:8085
+      - 5001:5001
+      - 9199:9199
